@@ -98,6 +98,8 @@ export default function () {
 
 ### Test 1: 50 VUs for 30s ✅
 
+![50 VUs Result](./images/01-50vus-result.png)
+
 ```
 █ TOTAL RESULTS
 
@@ -116,6 +118,8 @@ export default function () {
 ---
 
 ### Test 2: 100 VUs for 30s ✅
+
+![100 VUs Result](./images/01-100vus-result.png)
 
 ```
 █ TOTAL RESULTS
@@ -136,6 +140,8 @@ export default function () {
 
 ### Test 3: 300 VUs for 30s ❌ (Connection Errors!)
 
+![300 VUs Errors](./images/01-300vus-error.png)
+
 ```
 WARN[0000] Request Failed    error="dial tcp 127.0.0.1:9000: connectex: No connection 
                              could be made because the target machine actively refused it."
@@ -143,6 +149,8 @@ WARN[0000] Request Failed    error="dial tcp 127.0.0.1:9000: connectex: No conne
                              could be made because the target machine actively refused it."
 ... (many more errors)
 ```
+
+![300 VUs Result](./images/01-300vus-result.png)
 
 ```
 █ TOTAL RESULTS
