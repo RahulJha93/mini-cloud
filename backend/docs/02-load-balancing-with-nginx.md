@@ -23,7 +23,7 @@ Scale horizontally using multiple server instances behind an Nginx load balancer
     ▼    ▼    ▼
 ┌──────┐ ┌──────┐ ┌──────┐
 │ App1 │ │ App2 │ │ App3 │   ← 3 Node.js instances
-│:3000 │ │:3000 │ │:3000 │
+│:9000 │ │:9000 │ │:9000 │
 └──────┘ └──────┘ └──────┘
 ```
 
@@ -38,7 +38,7 @@ Same server from 01, but now with `SERVER_NAME` environment variable to identify
 ```javascript
 const express = require('express');
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 9000;
 
 app.use(express.json());
 
@@ -73,9 +73,9 @@ events {}
 http {
   # Define upstream servers (backend pool)
   upstream backend {
-    server app1:3000;
-    server app2:3000;
-    server app3:3000;
+    server app1:9000;
+    server app2:9000;
+    server app3:9000;
   }
 
   server {
@@ -158,7 +158,7 @@ export default function () {
 
   const body = JSON.parse(res.body);
   const server = body.server;
- 
+ F300
   // Increment the appropriate counter
   if (server === 'app1') app1Counter.add(1);
   else if (server === 'app2') app2Counter.add(1);
@@ -379,8 +379,8 @@ backend/
 ```nginx
 upstream backend {
   least_conn;              # ← Use least connections algorithm
-  server app1:3000 weight=3;
-  server app2:3000 weight=1;
-  server app3:3000 weight=2;
+  server app1:9000 weight=3;
+  server app2:9000 weight=1;
+  server app3:9000 weight=2;
 }
 ```
