@@ -6,10 +6,10 @@
 //   duration: '30s', // test duration
 // };
 
-export default function () {
-  http.get('http://localhost:9000/users');
-  sleep(1);
-}
+// export default function () {
+//   http.get('http://localhost:9000/users');
+//   sleep(1);
+// }
 
 import http from 'k6/http';
 import { sleep } from 'k6';
@@ -27,6 +27,12 @@ export const options = {
 
 export default function () {
   const res = http.get('http://localhost:8080/users'); // <-- NGINX
+
+  // Check if response is valid JSON
+  if (res.status !== 200) {
+    console.log(`Error: ${res.status}`);
+    return;
+  }
 
   const body = JSON.parse(res.body);
   const server = body.server;
