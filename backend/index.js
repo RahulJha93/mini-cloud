@@ -24,13 +24,13 @@ app.get('/health', (req, res) => {
 app.get('/users', async (req, res) => {
 
   // Make ONLY app2 slow
-  // if (process.env.SERVER_NAME === 'app2') {
-  //   await new Promise(resolve => setTimeout(resolve, 1000)); // `1 seconds
-  // }
+  if (process.env.SERVER_NAME === 'app2') {
+    await new Promise(resolve => setTimeout(resolve, 1000)); // `1 seconds
+  }
 
   res.status(200).json({
     success: true,
-    // server: process.env.SERVER_NAME,
+    server: process.env.SERVER_NAME,
     time: Date.now(),
     count: users.length,
     data: users
