@@ -25,7 +25,7 @@ app.get('/users', async (req, res) => {
 
   // Make ONLY app2 slow
   if (process.env.SERVER_NAME === 'app2') {
-    await new Promise(resolve => setTimeout(resolve, 1000)); // `1 seconds
+    await new Promise(resolve => setTimeout(resolve, 3000)); // 3 seconds
   }
 
   res.status(200).json({
