@@ -304,6 +304,120 @@ app3: ──●──●──●──●──●──  (fast, ~6ms each)
 
 ---
 
+## Experiment 3: Timeout-Based Protection (Passive Health Check)
+
+### The Solution: Add Timeouts
+
+If a server is too slow, we can **time out** and skip it. Updated `nginx.conf`:
+
+```nginx
+events {}
+
+http {
+  upstream backend {
+    server app1:9000;
+    server app2:9000;
+    server app3:9000;
+  }
+
+  server {
+    listen 80;
+
+    location / {
+      proxy_connect_timeout 1s;   # ← Max time to establish connection
+      proxy_send_timeout 1s;      # ← Max time to send request
+      proxy_read_timeout 1s;      # ← Max time to wait for response
+
+      proxy_pass http://backend;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+    }
+  }
+}
+```
+
+### What Happens Now?
+
+```
+Timeline with 1s timeout:
+─────────────────────────────────────────────────
+Request → app2
+    │
+    ├── app2 starts processing (has 1s delay)
+    │
+    ├── proxy_read_timeout = 1s reached!
+    │
+    └── Nginx: "Too slow, marking as failed"
+        → Routes to app1 or app3 instead
+```
+
+### Result: App2 Gets No Traffic!
+
+```
+CUSTOM
+app1_requests..................: ~150   (50%)
+app2_requests..................: ~0     (0%)    ← Timed out!
+app3_requests..................: ~150   (50%)
+
+HTTP
+http_req_failed................: ~0%    
+```
+
+### How Passive Health Check Works
+
+```
+┌────────────────────────────────────────────────────────┐
+│                    Nginx (Load Balancer)               │
+│                                                        │
+│   Request comes in                                     │
+│        │                                               │
+│        ▼                                               │
+│   ┌─────────┐                                          │
+│   │ app1 ✅ │ ← Fast response (~6ms) → Success!       │
+│   └─────────┘                                          │
+│                                                        │
+│   ┌─────────┐                                          │
+│   │ app2 ⏱️ │ ← Takes 1000ms → TIMEOUT after 1s      │
+│   └─────────┘   → Marked as "temporarily down"        │
+│                 → Next requests skip app2              │
+│                                                        │
+│   ┌─────────┐                                          │
+│   │ app3 ✅ │ ← Fast response (~6ms) → Success!       │
+│   └─────────┘                                          │
+└────────────────────────────────────────────────────────┘
+```
+
+### Comparison: With vs Without Timeouts
+
+| Metric | No Timeout (Exp 2) | With 1s Timeout (Exp 3) |
+|--------|-------------------|-------------------------|
+| app1 requests | 77 | ~150 |
+| app2 requests | 77 | ~0 |
+| app3 requests | 77 | ~150 |
+| Avg Latency | 341ms | ~6ms |
+| Throughput | 20.8 req/s | ~30 req/s |
+
+### Key Insight: Circuit Breaker Pattern
+
+This is a form of **passive health checking**:
+
+1. **Detect** - Nginx detects slow responses via timeout
+2. **Open Circuit** - Stop sending traffic to slow server
+3. **Redirect** - Send traffic to healthy servers
+4. **Retry Later** - Nginx will try app2 again after some time
+
+### Timeout Settings Explained
+
+| Setting | Purpose | Recommendation |
+|---------|---------|----------------|
+| `proxy_connect_timeout` | Time to establish TCP connection | 1-5s |
+| `proxy_send_timeout` | Time to send request to backend | 5-60s |
+| `proxy_read_timeout` | Time to wait for response | Based on your API's expected latency |
+
+**Rule of thumb:** Set timeout slightly higher than your slowest acceptable response time.
+
+---
+
 ## Key Learnings
 
 ### 1. Load Balancing Basics
@@ -351,22 +465,6 @@ docker ps
 
 ---
 
-## Folder Structure
-
-```
-backend/
-├── index.js              # Express server
-├── Dockerfile            # Container config
-├── docker-compose.yml    # Multi-container setup
-├── baseline.js           # k6 load test
-├── nginx/
-│   └── nginx.conf        # Load balancer config
-└── docs/
-    ├── 01-single-backend.md
-    └── 02-load-balancing-with-nginx.md
-```
-
----
 
 ## Next Steps
 
