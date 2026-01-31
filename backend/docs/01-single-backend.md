@@ -126,15 +126,15 @@ export default function () {
 
   HTTP
   http_req_duration..: avg=6.52ms   min=395µs    med=2.09ms   max=150.77ms  p(90)=8.97ms   p(95)=15.35ms
-  http_req_failed....: 0.00%   0 out of 3000
-  http_reqs..........: 3000    99.072152/s
+  http_req_failed....: 0.00%   0 out of 9000
+  http_reqs..........: 9000    99.072152/s
 
   EXECUTION
-  iterations.........: 3000    99.072152/s
+  iterations.........: 9000    99.072152/s
   vus................: 100     min=100      max=100
 ```
 
-**Result:** All 3000 requests successful, ~99 req/s
+**Result:** All 9000 requests successful, ~99 req/s
 
 ---
 
