@@ -179,31 +179,51 @@ docker compose up --build
 k6 run baseline.js
 ```
 
+### Docker Containers Running
+
+![Docker Containers](./images/02-docker-containers.png)
+
+All 4 containers running:
+- `app1-1` - users-api (1.15% CPU)
+- `app2-1` - users-api (0.99% CPU)
+- `app3-1` - users-api (0.69% CPU)
+- `nginx` - nginx:alpine (0.61% CPU, port 8080:80)
+
 ### Result
+
+![Round Robin Result](./images/02-round-robin-result.png)
 
 ```
 █ TOTAL RESULTS
 
   CUSTOM
-  app1_requests..................: 30     
-  app2_requests..................: 30     
-  app3_requests..................: 29     
+  app1_requests..................: 100    9.914936/s
+  app2_requests..................: 100    9.914936/s
+  app3_requests..................: 100    9.914936/s
 
   HTTP
-  http_req_failed................: 0.00%   0 out of 89
+  http_req_duration..............: avg=6.03ms   min=1.03ms  med=2.82ms  max=33.82ms  p(90)=17.15ms  p(95)=26.57ms
+  http_req_failed................: 0.00%  0 out of 300
+  http_reqs......................: 300    29.744809/s
+
+  EXECUTION
+  iteration_duration.............: avg=1s       min=1s      med=1s      max=1.04s
+  iterations.....................: 300    29.744809/s
+  vus............................: 30     min=30       max=30
 ```
 
-**Distribution:** ~33% each server (Round Robin working!)
+**Distribution:** Perfect 33.3% each server (Round Robin working!)
 
 ```
 Request Distribution:
 ┌────────┬──────────┬─────────┐
 │ Server │ Requests │ Percent │
 ├────────┼──────────┼─────────┤
-│ app1   │    30    │  33.7%  │
-│ app2   │    30    │  33.7%  │
-│ app3   │    29    │  32.6%  │
+│ app1   │   100    │  33.3%  │
+│ app2   │   100    │  33.3%  │
+│ app3   │   100    │  33.3%  │
 └────────┴──────────┴─────────┘
+Total: 300 requests, 0% failed, avg latency 6.03ms
 ```
 
 ---
@@ -231,6 +251,38 @@ app.get('/users', async (req, res) => {
 });
 ```
 
+### Result with Slow Server
+
+![Slow Server Result](./images/02-slow-server-result.png)
+
+```
+█ TOTAL RESULTS
+
+  CUSTOM
+  app1_requests..................: 77     6.9449793/s
+  app2_requests..................: 77     6.9449793/s
+  app3_requests..................: 77     6.9449793/s
+
+  HTTP
+  http_req_duration..............: avg=341.02ms  min=1.05ms  med=9.48ms  max=1.03s  p(90)=1.01s  p(95)=1.02s
+  http_req_failed................: 0.00%  0 out of 231
+  http_reqs......................: 231    20.84938/s
+
+  EXECUTION
+  iteration_duration.............: avg=1.34s    min=1s      med=1.01s   max=2.04s  p(90)=2.01s  p(95)=2.02s
+  iterations.....................: 231    20.84938/s
+  vus............................: 8      min=8        max=30
+```
+
+### Impact Comparison
+
+| Metric | All Fast (Exp 1) | App2 Slow (Exp 2) | Impact |
+|--------|------------------|-------------------|--------|
+| Total Requests | 300 | 231 | **-23%** |
+| Requests per Server | 100 each | 77 each | **-23%** |
+| Avg Latency | 6.03ms | 341.02ms | **56x slower!** |
+| Throughput | 29.7 req/s | 20.8 req/s | **-30%** |
+
 ### Problem with Round Robin
 
 With default Round Robin, Nginx **doesn't know** app2 is slow. It still sends 1/3 of traffic there!
@@ -238,15 +290,17 @@ With default Round Robin, Nginx **doesn't know** app2 is slow. It still sends 1/
 ```
 Request flow with slow app2:
 ─────────────────────────────
-app1: ──●──●──●──●──●──  (fast, 5ms each)
+app1: ──●──●──●──●──●──  (fast, ~6ms each)
 app2: ──────●──────────●  (slow, 1000ms each)  ← Bottleneck!
-app3: ──●──●──●──●──●──  (fast, 5ms each)
+app3: ──●──●──●──●──●──  (fast, ~6ms each)
 ```
 
-### Observation
-- app1 and app3 handle requests quickly
-- app2 creates a queue, slowing down 1/3 of all requests
-- Overall latency increases because of one slow server
+### Why This Happens
+- Round Robin blindly distributes 1/3 to each server
+- app2 takes 1 second per request
+- VUs waiting for app2 can't make new requests
+- Overall throughput drops from 300 → 231 requests
+- Average latency jumps from 6ms → 341ms
 
 ---
 
@@ -293,6 +347,23 @@ docker compose logs -f
 
 # Check which containers are running
 docker ps
+```
+
+---
+
+## Folder Structure
+
+```
+backend/
+├── index.js              # Express server
+├── Dockerfile            # Container config
+├── docker-compose.yml    # Multi-container setup
+├── baseline.js           # k6 load test
+├── nginx/
+│   └── nginx.conf        # Load balancer config
+└── docs/
+    ├── 01-single-backend.md
+    └── 02-load-balancing-with-nginx.md
 ```
 
 ---
