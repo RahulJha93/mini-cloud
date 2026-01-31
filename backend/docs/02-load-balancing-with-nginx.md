@@ -416,6 +416,43 @@ This is a form of **passive health checking**:
 
 **Rule of thumb:** Set timeout slightly higher than your slowest acceptable response time.
 
+### Timeout Values Guide
+
+You can customize timeouts based on your use case:
+
+#### Fast APIs (current setup)
+```nginx
+proxy_connect_timeout 1s;
+proxy_send_timeout 1s;
+proxy_read_timeout 1s;
+```
+Best for: Quick responses, real-time APIs
+
+#### Normal Web Apps
+```nginx
+proxy_connect_timeout 5s;
+proxy_send_timeout 30s;
+proxy_read_timeout 30s;
+```
+Best for: Standard web applications, REST APIs
+
+#### Long-Running Tasks
+```nginx
+proxy_connect_timeout 5s;
+proxy_send_timeout 120s;
+proxy_read_timeout 300s;   # 5 minutes
+```
+Best for: File uploads, report generation, data processing
+
+#### Formula
+```
+timeout = expected_response_time + buffer
+
+Example:
+- API usually responds in 500ms
+- Set timeout to 2-3s (allows for spikes)
+```
+
 ---
 
 ## Key Learnings
